@@ -1,0 +1,127 @@
+/**
+ * Entity: {{EntityName}}
+ * API service functions for {{entityName}} entity
+ */
+
+import { api } from "@/shared/api";
+import type {
+  I{{EntityName}},
+  I{{EntityName}}Response,
+  I{{EntityName}}ListResponse,
+  ICreate{{EntityName}}DTO,
+  IUpdate{{EntityName}}DTO,
+  I{{EntityName}}Filters,
+} from "./types";
+
+// ============================================================================
+// Constants
+// ============================================================================
+
+const BASE_URL = "/api/{{entityName}}s"; // Adjust endpoint as needed
+
+// ============================================================================
+// GET Requests
+// ============================================================================
+
+/**
+ * Fetch paginated list of {{entityName}}s
+ */
+export const fetch{{EntityName}}s = async (
+  params?: I{{EntityName}}Filters
+): Promise<IPaginatedResponse<I{{EntityName}}[]>> => {
+  const response = await api.get<I{{EntityName}}ListResponse>(BASE_URL, { params });
+  return response.data.result;
+};
+
+/**
+ * Fetch single {{entityName}} by ID
+ */
+export const fetch{{EntityName}}ById = async (
+  id: number | string
+): Promise<I{{EntityName}}> => {
+  const response = await api.get<I{{EntityName}}Response>(`${BASE_URL}/${id}/`);
+  return response.data.result;
+};
+
+// ============================================================================
+// POST Requests
+// ============================================================================
+
+/**
+ * Create new {{entityName}}
+ */
+export const create{{EntityName}} = async (
+  data: ICreate{{EntityName}}DTO
+): Promise<I{{EntityName}}> => {
+  const response = await api.post<I{{EntityName}}Response>(BASE_URL, data);
+  return response.data.result;
+};
+
+/**
+ * Create {{entityName}} with FormData (for file uploads)
+ */
+export const create{{EntityName}}WithFormData = async (
+  formData: FormData
+): Promise<I{{EntityName}}> => {
+  const response = await api.post<I{{EntityName}}Response>(BASE_URL, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return response.data.result;
+};
+
+// ============================================================================
+// PATCH/PUT Requests
+// ============================================================================
+
+/**
+ * Update {{entityName}} (partial update)
+ */
+export const update{{EntityName}} = async ({
+  id,
+  data,
+}: {
+  id: number | string;
+  data: IUpdate{{EntityName}}DTO;
+}): Promise<I{{EntityName}}> => {
+  const response = await api.patch<I{{EntityName}}Response>(
+    `${BASE_URL}/${id}/`,
+    data
+  );
+  return response.data.result;
+};
+
+/**
+ * Update {{entityName}} with FormData (for file uploads)
+ */
+export const update{{EntityName}}WithFormData = async ({
+  id,
+  formData,
+}: {
+  id: number | string;
+  formData: FormData;
+}): Promise<I{{EntityName}}> => {
+  const response = await api.patch<I{{EntityName}}Response>(
+    `${BASE_URL}/${id}/`,
+    formData,
+    { headers: { "Content-Type": "multipart/form-data" } }
+  );
+  return response.data.result;
+};
+
+// ============================================================================
+// DELETE Requests
+// ============================================================================
+
+/**
+ * Delete {{entityName}} by ID
+ */
+export const delete{{EntityName}} = async (id: number | string): Promise<void> => {
+  await api.delete(`${BASE_URL}/${id}/`);
+};
+
+/**
+ * Bulk delete {{entityName}}s
+ */
+export const delete{{EntityName}}s = async (ids: (number | string)[]): Promise<void> => {
+  await api.post(`${BASE_URL}/bulk-delete/`, { ids });
+};

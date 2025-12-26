@@ -1,0 +1,128 @@
+/**
+ * Entity: {{EntityName}}
+ * React Query hooks for fetching {{entityName}} data
+ */
+
+import {
+  useQuery,
+  useInfiniteQuery,
+  type UseQueryOptions,
+  type UseInfiniteQueryOptions,
+} from "@tanstack/react-query";
+import { fetch{{EntityName}}s, fetch{{EntityName}}ById } from "./services";
+import type { I{{EntityName}}, IPaginatedResponse, I{{EntityName}}Filters } from "./types";
+
+// ============================================================================
+// Query Keys Factory
+// ============================================================================
+
+export const {{entityName}}Keys = {
+  all: ["{{entityName}}s"] as const,
+  lists: () => [...{{entityName}}Keys.all, "list"] as const,
+  list: (filters?: I{{EntityName}}Filters) => [...{{entityName}}Keys.lists(), filters] as const,
+  details: () => [...{{entityName}}Keys.all, "detail"] as const,
+  detail: (id: number | string) => [...{{entityName}}Keys.details(), id] as const,
+};
+
+// ============================================================================
+// Query Options Type
+// ============================================================================
+
+type QueryOptions<TData> = Omit<
+  UseQueryOptions<TData, Error>,
+  "queryKey" | "queryFn"
+>;
+
+type InfiniteQueryOptions<TData> = Omit<
+  UseInfiniteQueryOptions<TData, Error>,
+  "queryKey" | "queryFn" | "getNextPageParam" | "initialPageParam"
+>;
+
+// ============================================================================
+// List Query
+// ============================================================================
+
+/**
+ * Fetch paginated list of {{entityName}}s
+ * @param filters - Filter parameters
+ * @param options - Additional query options
+ */
+export const use{{EntityName}}s = (
+  filters?: I{{EntityName}}Filters,
+  options?: QueryOptions<IPaginatedResponse<I{{EntityName}}[]>>
+) => {
+  return useQuery({
+    queryKey: {{entityName}}Keys.list(filters),
+    queryFn: () => fetch{{EntityName}}s(filters),
+    ...options,
+  });
+};
+
+// ============================================================================
+// Detail Query
+// ============================================================================
+
+/**
+ * Fetch single {{entityName}} by ID
+ * @param id - Entity ID
+ * @param options - Additional query options
+ */
+export const use{{EntityName}} = (
+  id: number | string,
+  options?: QueryOptions<I{{EntityName}}>
+) => {
+  return useQuery({
+    queryKey: {{entityName}}Keys.detail(id),
+    queryFn: () => fetch{{EntityName}}ById(id),
+    enabled: Boolean(id),
+    ...options,
+  });
+};
+
+// ============================================================================
+// Infinite Query (Pagination/Infinite Scroll)
+// ============================================================================
+
+/**
+ * Fetch {{entityName}}s with infinite scroll pagination
+ * @param filters - Filter parameters (excluding page)
+ * @param options - Additional infinite query options
+ */
+export const useInfinite{{EntityName}}s = (
+  filters?: Omit<I{{EntityName}}Filters, "page">,
+  options?: InfiniteQueryOptions<IPaginatedResponse<I{{EntityName}}[]>>
+) => {
+  return useInfiniteQuery({
+    queryKey: {{entityName}}Keys.list(filters),
+    queryFn: ({ pageParam }) =>
+      fetch{{EntityName}}s({ ...filters, page: pageParam as number }),
+    getNextPageParam: (lastPage) => lastPage.next ?? undefined,
+    initialPageParam: 1,
+    select: (data) => ({
+      ...data,
+      // Flatten pages into single array
+      items: data.pages.flatMap((page) => page.results),
+      totalCount: data.pages[0]?.count ?? 0,
+    }),
+    ...options,
+  });
+};
+
+// ============================================================================
+// Prefetch Utilities
+// ============================================================================
+
+/**
+ * Prefetch {{entityName}} detail for faster navigation
+ * Usage: Call in onMouseEnter or beforeNavigate
+ */
+export const prefetch{{EntityName}} = (
+  queryClient: ReturnType<typeof import("@tanstack/react-query").useQueryClient>,
+  id: number | string
+) => {
+  return queryClient.prefetchQuery({
+    queryKey: {{entityName}}Keys.detail(id),
+    queryFn: () => fetch{{EntityName}}ById(id),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+};

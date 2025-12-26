@@ -1,0 +1,190 @@
+/**
+ * Entity: {{EntityName}}
+ * Form component for creating/editing {{entityName}}
+ */
+
+"use client"; // For Next.js 15 App Router
+
+import { type FC, useEffect } from "react";
+import { useForm, type SubmitHandler } from "react-hook-form";
+import {
+  useCreate{{EntityName}},
+  useUpdate{{EntityName}},
+  use{{EntityName}},
+} from "../../api";
+import type { I{{EntityName}}, ICreate{{EntityName}}DTO, IUpdate{{EntityName}}DTO } from "../../api";
+import styles from "./{{EntityName}}Form.module.css";
+
+// ============================================================================
+// Types
+// ============================================================================
+
+interface {{EntityName}}FormProps {
+  /** ID for editing existing {{entityName}}, undefined for create */
+  {{entityName}}Id?: number;
+  /** Initial values for the form */
+  defaultValues?: Partial<ICreate{{EntityName}}DTO>;
+  /** Callback after successful submit */
+  onSuccess?: ({{entityName}}: I{{EntityName}}) => void;
+  /** Callback on cancel */
+  onCancel?: () => void;
+}
+
+type FormValues = ICreate{{EntityName}}DTO;
+
+// ============================================================================
+// Component
+// ============================================================================
+
+export const {{EntityName}}Form: FC<{{EntityName}}FormProps> = ({
+  {{entityName}}Id,
+  defaultValues,
+  onSuccess,
+  onCancel,
+}) => {
+  const isEditMode = Boolean({{entityName}}Id);
+
+  // Fetch existing data for edit mode
+  const { data: existing{{EntityName}}, isLoading: isLoadingDetails } = use{{EntityName}}(
+    {{entityName}}Id ?? 0,
+    { enabled: isEditMode }
+  );
+
+  // Mutations
+  const createMutation = useCreate{{EntityName}}({
+    onSuccess: (data) => onSuccess?.(data),
+  });
+
+  const updateMutation = useUpdate{{EntityName}}({
+    onSuccess: (data) => onSuccess?.(data),
+  });
+
+  const isPending = createMutation.isPending || updateMutation.isPending;
+
+  // Form setup
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isDirty },
+  } = useForm<FormValues>({
+    defaultValues: {
+      name: "",
+      description: "",
+      isActive: true,
+      ...defaultValues,
+    },
+  });
+
+  // Populate form with existing data in edit mode
+  useEffect(() => {
+    if (existing{{EntityName}}) {
+      reset({
+        name: existing{{EntityName}}.name,
+        description: existing{{EntityName}}.description ?? "",
+        isActive: existing{{EntityName}}.isActive,
+      });
+    }
+  }, [existing{{EntityName}}, reset]);
+
+  // Submit handler
+  const onSubmit: SubmitHandler<FormValues> = (data) => {
+    if (isEditMode && {{entityName}}Id) {
+      updateMutation.mutate({
+        id: {{entityName}}Id,
+        data: data as IUpdate{{EntityName}}DTO,
+      });
+    } else {
+      createMutation.mutate(data);
+    }
+  };
+
+  // Loading state for edit mode
+  if (isEditMode && isLoadingDetails) {
+    return <div className={styles.loading}>Loading...</div>;
+  }
+
+  return (
+    <form className={styles.form} onSubmit={handleSubmit(onSubmit)}>
+      <h2 className={styles.title}>
+        {isEditMode ? "Edit {{EntityName}}" : "Create {{EntityName}}"}
+      </h2>
+
+      {/* Name field */}
+      <div className={styles.field}>
+        <label htmlFor="name" className={styles.label}>
+          Name <span className={styles.required}>*</span>
+        </label>
+        <input
+          id="name"
+          type="text"
+          className={styles.input}
+          placeholder="Enter name"
+          {...register("name", {
+            required: "Name is required",
+            minLength: { value: 2, message: "Name must be at least 2 characters" },
+            maxLength: { value: 100, message: "Name must be less than 100 characters" },
+          })}
+        />
+        {errors.name && (
+          <span className={styles.error}>{errors.name.message}</span>
+        )}
+      </div>
+
+      {/* Description field */}
+      <div className={styles.field}>
+        <label htmlFor="description" className={styles.label}>
+          Description
+        </label>
+        <textarea
+          id="description"
+          className={styles.textarea}
+          placeholder="Enter description (optional)"
+          rows={4}
+          {...register("description", {
+            maxLength: { value: 500, message: "Description must be less than 500 characters" },
+          })}
+        />
+        {errors.description && (
+          <span className={styles.error}>{errors.description.message}</span>
+        )}
+      </div>
+
+      {/* Active checkbox */}
+      <div className={styles.field}>
+        <label className={styles.checkbox}>
+          <input type="checkbox" {...register("isActive")} />
+          <span>Active</span>
+        </label>
+      </div>
+
+      {/* Error display */}
+      {(createMutation.error || updateMutation.error) && (
+        <div className={styles.errorBanner}>
+          {createMutation.error?.message || updateMutation.error?.message}
+        </div>
+      )}
+
+      {/* Actions */}
+      <div className={styles.actions}>
+        {onCancel && (
+          <button
+            type="button"
+            className={styles.btnCancel}
+            onClick={onCancel}
+            disabled={isPending}
+          >
+            Cancel
+          </button>
+        )}
+        <button
+          type="submit"
+          className={styles.btnSubmit}
+          disabled={isPending || (!isDirty && isEditMode)}
+        >
+          {isPending ? "Saving..." : isEditMode ? "Update" : "Create"}
+        </button>
+      </div>
+    </form>
+  );
+};

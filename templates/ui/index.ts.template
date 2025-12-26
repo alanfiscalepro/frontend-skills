@@ -1,0 +1,8 @@
+/**
+ * Entity: {{EntityName}}
+ * UI Components - Barrel exports
+ */
+
+export { {{EntityName}}Card, {{EntityName}}CardSkeleton } from "./{{EntityName}}Card";
+export { {{EntityName}}List } from "./{{EntityName}}List";
+export { {{EntityName}}Form } from "./{{EntityName}}Form";

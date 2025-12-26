@@ -1,0 +1,233 @@
+/**
+ * Entity: {{EntityName}}
+ * React Query mutation hooks for {{entityName}} operations
+ */
+
+import {
+  useMutation,
+  useQueryClient,
+  type UseMutationOptions,
+} from "@tanstack/react-query";
+import {
+  create{{EntityName}},
+  create{{EntityName}}WithFormData,
+  update{{EntityName}},
+  update{{EntityName}}WithFormData,
+  delete{{EntityName}},
+  delete{{EntityName}}s,
+} from "./services";
+import { {{entityName}}Keys } from "./queries";
+import type {
+  I{{EntityName}},
+  ICreate{{EntityName}}DTO,
+  IUpdate{{EntityName}}DTO,
+} from "./types";
+
+// ============================================================================
+// Mutation Options Type
+// ============================================================================
+
+type MutationOptions<TData, TVariables> = Omit<
+  UseMutationOptions<TData, Error, TVariables>,
+  "mutationFn"
+>;
+
+// ============================================================================
+// Create Mutations
+// ============================================================================
+
+/**
+ * Create new {{entityName}}
+ */
+export const useCreate{{EntityName}} = (
+  options?: MutationOptions<I{{EntityName}}, ICreate{{EntityName}}DTO>
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: create{{EntityName}},
+    onSuccess: (data, variables, context) => {
+      // Invalidate list queries to refetch
+      queryClient.invalidateQueries({ queryKey: {{entityName}}Keys.lists() });
+      options?.onSuccess?.(data, variables, context);
+    },
+    ...options,
+  });
+};
+
+/**
+ * Create {{entityName}} with file upload
+ */
+export const useCreate{{EntityName}}WithFormData = (
+  options?: MutationOptions<I{{EntityName}}, FormData>
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: create{{EntityName}}WithFormData,
+    onSuccess: (data, variables, context) => {
+      queryClient.invalidateQueries({ queryKey: {{entityName}}Keys.lists() });
+      options?.onSuccess?.(data, variables, context);
+    },
+    ...options,
+  });
+};
+
+// ============================================================================
+// Update Mutations
+// ============================================================================
+
+interface IUpdateParams {
+  id: number | string;
+  data: IUpdate{{EntityName}}DTO;
+}
+
+/**
+ * Update existing {{entityName}}
+ */
+export const useUpdate{{EntityName}} = (
+  options?: MutationOptions<I{{EntityName}}, IUpdateParams>
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: update{{EntityName}},
+    onSuccess: (data, variables, context) => {
+      // Invalidate both list and detail queries
+      queryClient.invalidateQueries({ queryKey: {{entityName}}Keys.lists() });
+      queryClient.invalidateQueries({
+        queryKey: {{entityName}}Keys.detail(variables.id),
+      });
+      options?.onSuccess?.(data, variables, context);
+    },
+    ...options,
+  });
+};
+
+interface IUpdateWithFormDataParams {
+  id: number | string;
+  formData: FormData;
+}
+
+/**
+ * Update {{entityName}} with file upload
+ */
+export const useUpdate{{EntityName}}WithFormData = (
+  options?: MutationOptions<I{{EntityName}}, IUpdateWithFormDataParams>
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: update{{EntityName}}WithFormData,
+    onSuccess: (data, variables, context) => {
+      queryClient.invalidateQueries({ queryKey: {{entityName}}Keys.lists() });
+      queryClient.invalidateQueries({
+        queryKey: {{entityName}}Keys.detail(variables.id),
+      });
+      options?.onSuccess?.(data, variables, context);
+    },
+    ...options,
+  });
+};
+
+// ============================================================================
+// Delete Mutations
+// ============================================================================
+
+/**
+ * Delete single {{entityName}}
+ */
+export const useDelete{{EntityName}} = (
+  options?: MutationOptions<void, number | string>
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: delete{{EntityName}},
+    onSuccess: (data, variables, context) => {
+      // Invalidate list and remove detail from cache
+      queryClient.invalidateQueries({ queryKey: {{entityName}}Keys.lists() });
+      queryClient.removeQueries({ queryKey: {{entityName}}Keys.detail(variables) });
+      options?.onSuccess?.(data, variables, context);
+    },
+    ...options,
+  });
+};
+
+/**
+ * Bulk delete {{entityName}}s
+ */
+export const useDelete{{EntityName}}s = (
+  options?: MutationOptions<void, (number | string)[]>
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: delete{{EntityName}}s,
+    onSuccess: (data, variables, context) => {
+      queryClient.invalidateQueries({ queryKey: {{entityName}}Keys.lists() });
+      // Remove all deleted items from cache
+      variables.forEach((id) => {
+        queryClient.removeQueries({ queryKey: {{entityName}}Keys.detail(id) });
+      });
+      options?.onSuccess?.(data, variables, context);
+    },
+    ...options,
+  });
+};
+
+// ============================================================================
+// Optimistic Update Example
+// ============================================================================
+
+/**
+ * Update {{entityName}} with optimistic update
+ * Immediately updates UI, rolls back on error
+ */
+export const useOptimisticUpdate{{EntityName}} = (
+  options?: MutationOptions<I{{EntityName}}, IUpdateParams>
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: update{{EntityName}},
+    onMutate: async (variables) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({
+        queryKey: {{entityName}}Keys.detail(variables.id),
+      });
+
+      // Snapshot previous value
+      const previousData = queryClient.getQueryData<I{{EntityName}}>(
+        {{entityName}}Keys.detail(variables.id)
+      );
+
+      // Optimistically update
+      if (previousData) {
+        queryClient.setQueryData<I{{EntityName}}>(
+          {{entityName}}Keys.detail(variables.id),
+          { ...previousData, ...variables.data }
+        );
+      }
+
+      return { previousData };
+    },
+    onError: (err, variables, context) => {
+      // Rollback on error
+      if (context?.previousData) {
+        queryClient.setQueryData(
+          {{entityName}}Keys.detail(variables.id),
+          context.previousData
+        );
+      }
+      options?.onError?.(err, variables, context);
+    },
+    onSettled: (data, error, variables) => {
+      // Always refetch after error or success
+      queryClient.invalidateQueries({
+        queryKey: {{entityName}}Keys.detail(variables.id),
+      });
+    },
+    ...options,
+  });
+};

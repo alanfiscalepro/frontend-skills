@@ -1,0 +1,43 @@
+/**
+ * Entity: {{EntityName}}
+ * Public API - Barrel exports
+ */
+
+// Types
+export type {
+  I{{EntityName}},
+  ICreate{{EntityName}}DTO,
+  IUpdate{{EntityName}}DTO,
+  I{{EntityName}}Filters,
+  I{{EntityName}}Response,
+  I{{EntityName}}ListResponse,
+} from "./types";
+
+// Services (for direct API calls if needed)
+export {
+  fetch{{EntityName}}s,
+  fetch{{EntityName}}ById,
+  create{{EntityName}},
+  update{{EntityName}},
+  delete{{EntityName}},
+} from "./services";
+
+// Query Keys (for cache invalidation in other features)
+export { {{entityName}}Keys } from "./queries";
+
+// Query Hooks
+export {
+  use{{EntityName}}s,
+  use{{EntityName}},
+  useInfinite{{EntityName}}s,
+  prefetch{{EntityName}},
+} from "./queries";
+
+// Mutation Hooks
+export {
+  useCreate{{EntityName}},
+  useUpdate{{EntityName}},
+  useDelete{{EntityName}},
+  useDelete{{EntityName}}s,
+  useOptimisticUpdate{{EntityName}},
+} from "./mutations";

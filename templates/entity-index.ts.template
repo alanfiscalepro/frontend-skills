@@ -1,0 +1,34 @@
+/**
+ * Entity: {{EntityName}}
+ * Public API - Main barrel export
+ *
+ * This is the only file other layers should import from.
+ * Example: import { use{{EntityName}}s, {{EntityName}}Card } from "@/entities/{{EntityName}}";
+ */
+
+// API Layer
+export {
+  // Types
+  type I{{EntityName}},
+  type ICreate{{EntityName}}DTO,
+  type IUpdate{{EntityName}}DTO,
+  type I{{EntityName}}Filters,
+  // Query Keys
+  {{entityName}}Keys,
+  // Query Hooks
+  use{{EntityName}}s,
+  use{{EntityName}},
+  useInfinite{{EntityName}}s,
+  // Mutation Hooks
+  useCreate{{EntityName}},
+  useUpdate{{EntityName}},
+  useDelete{{EntityName}},
+} from "./api";
+
+// UI Components
+export {
+  {{EntityName}}Card,
+  {{EntityName}}CardSkeleton,
+  {{EntityName}}List,
+  {{EntityName}}Form,
+} from "./ui";

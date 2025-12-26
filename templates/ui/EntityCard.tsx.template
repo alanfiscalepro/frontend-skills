@@ -1,0 +1,97 @@
+/**
+ * Entity: {{EntityName}}
+ * Card component for displaying single {{entityName}}
+ */
+
+import type { FC } from "react";
+import type { I{{EntityName}} } from "../../api";
+import styles from "./{{EntityName}}Card.module.css";
+
+// ============================================================================
+// Types
+// ============================================================================
+
+interface {{EntityName}}CardProps {
+  {{entityName}}: I{{EntityName}};
+  onEdit?: ({{entityName}}: I{{EntityName}}) => void;
+  onDelete?: (id: number) => void;
+  onView?: (id: number) => void;
+  isLoading?: boolean;
+}
+
+// ============================================================================
+// Component
+// ============================================================================
+
+export const {{EntityName}}Card: FC<{{EntityName}}CardProps> = ({
+  {{entityName}},
+  onEdit,
+  onDelete,
+  onView,
+  isLoading = false,
+}) => {
+  if (isLoading) {
+    return (
+      <div className={styles.card}>
+        <div className={styles.skeleton} />
+      </div>
+    );
+  }
+
+  return (
+    <article className={styles.card}>
+      <header className={styles.header}>
+        <h3 className={styles.title}>{{{entityName}}.name}</h3>
+        {{{entityName}}.isActive && (
+          <span className={styles.badge}>Active</span>
+        )}
+      </header>
+
+      {{{entityName}}.description && (
+        <p className={styles.description}>{{{entityName}}.description}</p>
+      )}
+
+      <footer className={styles.actions}>
+        {onView && (
+          <button
+            type="button"
+            className={styles.btnView}
+            onClick={() => onView({{entityName}}.id)}
+          >
+            View
+          </button>
+        )}
+        {onEdit && (
+          <button
+            type="button"
+            className={styles.btnEdit}
+            onClick={() => onEdit({{entityName}})}
+          >
+            Edit
+          </button>
+        )}
+        {onDelete && (
+          <button
+            type="button"
+            className={styles.btnDelete}
+            onClick={() => onDelete({{entityName}}.id)}
+          >
+            Delete
+          </button>
+        )}
+      </footer>
+    </article>
+  );
+};
+
+// ============================================================================
+// Skeleton variant for loading states
+// ============================================================================
+
+export const {{EntityName}}CardSkeleton: FC = () => (
+  <div className={styles.card}>
+    <div className={styles.skeletonHeader} />
+    <div className={styles.skeletonBody} />
+    <div className={styles.skeletonFooter} />
+  </div>
+);

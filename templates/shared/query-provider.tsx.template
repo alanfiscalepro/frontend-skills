@@ -1,0 +1,82 @@
+/**
+ * React Query Provider
+ * Configure QueryClient for Next.js 15 App Router or React
+ */
+
+"use client";
+
+import { useState, type ReactNode } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+
+// ============================================================================
+// Configuration
+// ============================================================================
+
+const STALE_TIME = 60 * 1000; // 1 minute
+const GC_TIME = 5 * 60 * 1000; // 5 minutes (formerly cacheTime)
+
+// ============================================================================
+// Create Query Client
+// ============================================================================
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: STALE_TIME,
+        gcTime: GC_TIME,
+        retry: 1,
+        refetchOnWindowFocus: false,
+        refetchOnMount: false,
+        refetchOnReconnect: true,
+      },
+      mutations: {
+        retry: 0,
+      },
+    },
+  });
+}
+
+// For SSR: ensure we create a new client for each request
+let browserQueryClient: QueryClient | undefined = undefined;
+
+function getQueryClient() {
+  if (typeof window === "undefined") {
+    // Server: always make a new query client
+    return makeQueryClient();
+  }
+  // Browser: make a new query client if we don't already have one
+  if (!browserQueryClient) {
+    browserQueryClient = makeQueryClient();
+  }
+  return browserQueryClient;
+}
+
+// ============================================================================
+// Provider Component
+// ============================================================================
+
+interface QueryProviderProps {
+  children: ReactNode;
+}
+
+export function QueryProvider({ children }: QueryProviderProps) {
+  // Using useState ensures client is created once per component lifecycle
+  const [queryClient] = useState(() => getQueryClient());
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      {children}
+      {process.env.NODE_ENV === "development" && (
+        <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-right" />
+      )}
+    </QueryClientProvider>
+  );
+}
+
+// ============================================================================
+// Hook for accessing QueryClient (alternative to useQueryClient)
+// ============================================================================
+
+export { getQueryClient };

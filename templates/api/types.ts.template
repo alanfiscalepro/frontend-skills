@@ -1,0 +1,73 @@
+/**
+ * Entity: {{EntityName}}
+ * Types and interfaces for the {{entityName}} entity
+ */
+
+// ============================================================================
+// API Response Types (move to shared/types if reusing across entities)
+// ============================================================================
+
+export interface IApiResponse<T> {
+  result: T;
+  message: string | null;
+  resultCode: "SUCCESS" | "FAIL";
+  details?: Record<string, unknown>;
+}
+
+export interface IPaginatedResponse<T> {
+  results: T;
+  count: number;
+  next: number | null;
+  previous: number | null;
+}
+
+// ============================================================================
+// Entity Interface
+// ============================================================================
+
+export interface I{{EntityName}} {
+  id: number;
+  // TODO: Add entity-specific fields
+  name: string;
+  description?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ============================================================================
+// DTOs (Data Transfer Objects)
+// ============================================================================
+
+export interface ICreate{{EntityName}}DTO {
+  name: string;
+  description?: string;
+  isActive?: boolean;
+  // TODO: Add fields required for creation
+}
+
+export interface IUpdate{{EntityName}}DTO {
+  name?: string;
+  description?: string;
+  isActive?: boolean;
+  // TODO: Add fields that can be updated (usually Partial<ICreate{{EntityName}}DTO>)
+}
+
+// ============================================================================
+// Filter/Query Params
+// ============================================================================
+
+export interface I{{EntityName}}Filters {
+  search?: string;
+  isActive?: boolean;
+  page?: number;
+  pageSize?: number;
+  ordering?: string;
+}
+
+// ============================================================================
+// Type Aliases for Convenience
+// ============================================================================
+
+export type I{{EntityName}}Response = IApiResponse<I{{EntityName}}>;
+export type I{{EntityName}}ListResponse = IApiResponse<IPaginatedResponse<I{{EntityName}}[]>>;

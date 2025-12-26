@@ -1,0 +1,162 @@
+/**
+ * Shared API Client
+ * Axios instance with interceptors for authentication and error handling
+ */
+
+import axios, {
+  type AxiosInstance,
+  type AxiosError,
+  type InternalAxiosRequestConfig,
+} from "axios";
+
+// ============================================================================
+// Configuration
+// ============================================================================
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
+const REQUEST_TIMEOUT = 30000;
+
+// ============================================================================
+// Create Axios Instance
+// ============================================================================
+
+export const api: AxiosInstance = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: REQUEST_TIMEOUT,
+  headers: {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  },
+});
+
+// ============================================================================
+// Request Interceptor
+// ============================================================================
+
+api.interceptors.request.use(
+  (config: InternalAxiosRequestConfig) => {
+    // Add auth token if available
+    const token = getAccessToken();
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    // Add language header if needed
+    const locale = getLocale();
+    if (locale) {
+      config.headers["Accept-Language"] = locale;
+    }
+
+    return config;
+  },
+  (error: AxiosError) => {
+    return Promise.reject(error);
+  }
+);
+
+// ============================================================================
+// Response Interceptor
+// ============================================================================
+
+let isRefreshing = false;
+let refreshSubscribers: ((token: string) => void)[] = [];
+
+const subscribeTokenRefresh = (callback: (token: string) => void) => {
+  refreshSubscribers.push(callback);
+};
+
+const onTokenRefreshed = (token: string) => {
+  refreshSubscribers.forEach((callback) => callback(token));
+  refreshSubscribers = [];
+};
+
+api.interceptors.response.use(
+  (response) => response,
+  async (error: AxiosError) => {
+    const originalRequest = error.config;
+
+    // Handle 401 Unauthorized
+    if (error.response?.status === 401 && originalRequest) {
+      if (!isRefreshing) {
+        isRefreshing = true;
+
+        try {
+          const newToken = await refreshAccessToken();
+          setAccessToken(newToken);
+          onTokenRefreshed(newToken);
+          isRefreshing = false;
+
+          // Retry original request
+          originalRequest.headers.Authorization = `Bearer ${newToken}`;
+          return api(originalRequest);
+        } catch (refreshError) {
+          isRefreshing = false;
+          // Redirect to login or clear auth
+          handleAuthError();
+          return Promise.reject(refreshError);
+        }
+      }
+
+      // Queue requests while refreshing
+      return new Promise((resolve) => {
+        subscribeTokenRefresh((token: string) => {
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+          resolve(api(originalRequest));
+        });
+      });
+    }
+
+    // Handle other errors
+    return Promise.reject(error);
+  }
+);
+
+// ============================================================================
+// Helper Functions (implement based on your auth strategy)
+// ============================================================================
+
+function getAccessToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("access_token");
+}
+
+function setAccessToken(token: string): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem("access_token", token);
+}
+
+function getRefreshToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("refresh_token");
+}
+
+function getLocale(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("locale") || "en";
+}
+
+async function refreshAccessToken(): Promise<string> {
+  const refreshToken = getRefreshToken();
+  if (!refreshToken) {
+    throw new Error("No refresh token available");
+  }
+
+  const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
+    refresh_token: refreshToken,
+  });
+
+  return response.data.access_token;
+}
+
+function handleAuthError(): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem("access_token");
+  localStorage.removeItem("refresh_token");
+  window.location.href = "/login";
+}
+
+// ============================================================================
+// Export
+// ============================================================================
+
+export default api;
