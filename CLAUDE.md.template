@@ -1,0 +1,337 @@
+# Project Guidelines
+
+## Architecture
+
+This project uses **Feature-Sliced Design (FSD)** architecture with **React Query** (TanStack Query v5) for server state management.
+
+### FSD Layer Structure
+
+```
+src/
+├── app/          # Providers, routing, global styles
+├── pages/        # Page components (Next.js: app/)
+├── widgets/      # Composite UI blocks
+├── features/     # User interactions
+├── entities/     # Business entities
+└── shared/       # Reusable utilities
+```
+
+### Import Rules
+
+Layers can ONLY import from layers below them:
+- `app` → `pages`, `widgets`, `features`, `entities`, `shared`
+- `pages` → `widgets`, `features`, `entities`, `shared`
+- `widgets` → `features`, `entities`, `shared`
+- `features` → `entities`, `shared`
+- `entities` → `shared`
+- `shared` → nothing (only external deps)
+
+**Cross-imports within a layer are forbidden.**
+
+Always use public API (index.ts) for imports:
+```typescript
+// Good
+import { useUsers, UserCard } from "@/entities/user";
+
+// Bad - never import internal paths
+import { useUsers } from "@/entities/user/api/queries";
+```
+
+---
+
+## TypeScript Rules
+
+### Strict Typing - MANDATORY
+
+- **NEVER use the `any` keyword** - use `unknown` with type guards instead
+- **NEVER use `@ts-ignore` or `@ts-expect-error`** without explicit justification
+- All function parameters and return types must be explicitly typed
+- Use `interface` for object shapes, `type` for unions/intersections
+- Prefix interfaces with `I` (e.g., `IUser`, `ICreateUserDTO`)
+
+```typescript
+// Bad
+const fetchData = async (params: any) => { ... }
+const items: any[] = [];
+
+// Good
+const fetchData = async (params: Record<string, unknown>) => { ... }
+const items: IProduct[] = [];
+
+// For unknown external data, use type guards
+function isUser(data: unknown): data is IUser {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    "id" in data &&
+    "email" in data
+  );
+}
+```
+
+### Type Definitions
+
+```typescript
+// API Response Types - always define these
+export interface IApiResponse<T> {
+  result: T;
+  message: string | null;
+  resultCode: "SUCCESS" | "FAIL";
+}
+
+// Entity Types - always include id and timestamps
+export interface IEntity {
+  id: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// DTOs - separate create/update types
+export interface ICreateEntityDTO {
+  name: string;
+  // required fields for creation
+}
+
+export interface IUpdateEntityDTO {
+  name?: string;
+  // optional fields for updates (Partial pattern)
+}
+```
+
+---
+
+## Component Guidelines
+
+### Size Limits - MANDATORY
+
+- **Components must not exceed 200-300 lines of code**
+- If a component exceeds this limit, split it into smaller components
+- Extract hooks, utilities, and sub-components
+
+### Component Structure
+
+```typescript
+// Good component structure
+import type { FC } from "react";
+import type { IProduct } from "../../api";
+
+interface ProductCardProps {
+  product: IProduct;
+  onEdit?: (product: IProduct) => void;
+  onDelete?: (id: number) => void;
+}
+
+export const ProductCard: FC<ProductCardProps> = ({
+  product,
+  onEdit,
+  onDelete
+}) => {
+  // 1. Hooks at the top
+  const { mutate } = useDeleteProduct();
+
+  // 2. Handlers
+  const handleDelete = () => {
+    if (onDelete) onDelete(product.id);
+  };
+
+  // 3. Early returns for loading/error states
+  if (!product) return null;
+
+  // 4. Render
+  return (
+    <div className={styles.card}>
+      {/* JSX */}
+    </div>
+  );
+};
+```
+
+### Splitting Large Components
+
+When a component grows too large, extract:
+
+1. **Sub-components** - Visual sections become their own components
+2. **Custom hooks** - Complex logic goes into hooks
+3. **Utility functions** - Pure functions go into `lib/`
+
+```
+components/
+├── ProductCard/
+│   ├── ProductCard.tsx        # Main component (< 200 lines)
+│   ├── ProductCardHeader.tsx  # Extracted sub-component
+│   ├── ProductCardActions.tsx # Extracted sub-component
+│   ├── useProductCard.ts      # Extracted hook
+│   └── index.ts
+```
+
+---
+
+## Performance Optimization
+
+### Memoization
+
+```typescript
+// Memoize expensive computations
+const sortedProducts = useMemo(
+  () => products.sort((a, b) => a.price - b.price),
+  [products]
+);
+
+// Memoize callbacks passed to children
+const handleClick = useCallback((id: number) => {
+  doSomething(id);
+}, [doSomething]);
+
+// Memoize components that receive objects/arrays as props
+export const ProductCard = memo(function ProductCard({
+  product
+}: ProductCardProps) {
+  return <div>{product.name}</div>;
+});
+```
+
+### React Query Optimization
+
+```typescript
+// Enable/disable queries conditionally
+const { data } = useProduct(productId, {
+  enabled: Boolean(productId),
+});
+
+// Prefetch on hover for instant navigation
+const queryClient = useQueryClient();
+const handleMouseEnter = () => {
+  queryClient.prefetchQuery({
+    queryKey: productKeys.detail(productId),
+    queryFn: () => fetchProductById(productId),
+  });
+};
+
+// Configure stale time to reduce refetches
+const { data } = useProducts({
+  staleTime: 5 * 60 * 1000, // 5 minutes
+});
+```
+
+### Lazy Loading
+
+```typescript
+// Lazy load routes/pages
+const ProductsPage = lazy(() => import("./pages/products"));
+
+// Lazy load heavy components
+const HeavyChart = lazy(() => import("./components/HeavyChart"));
+
+// Use Suspense for loading states
+<Suspense fallback={<Skeleton />}>
+  <HeavyChart data={data} />
+</Suspense>
+```
+
+---
+
+## Naming Conventions
+
+| Type | Pattern | Example |
+|------|---------|---------|
+| Entity folder | PascalCase | `User`, `Product`, `Order` |
+| Service functions | camelCase with verb | `fetchUsers`, `createUser` |
+| Query hooks | `use` + Entity | `useUsers`, `useUser` |
+| Mutation hooks | `use` + action + Entity | `useCreateUser`, `useUpdateUser` |
+| Query keys | entityKeys object | `userKeys.all`, `userKeys.detail(id)` |
+| Components | PascalCase | `UserCard`, `UserList` |
+| Interfaces | `I` prefix | `IUser`, `ICreateUserDTO` |
+| Props interfaces | ComponentName + Props | `UserCardProps` |
+
+---
+
+## File Organization
+
+### Entity Structure
+
+```
+entities/[EntityName]/
+├── api/
+│   ├── index.ts       # Barrel exports
+│   ├── services.ts    # API service functions
+│   ├── queries.ts     # useQuery hooks + query keys
+│   ├── mutations.ts   # useMutation hooks
+│   └── types.ts       # TypeScript interfaces
+├── ui/
+│   ├── EntityCard/
+│   ├── EntityList/
+│   └── index.ts
+├── model/             # Optional: state/logic
+├── lib/               # Optional: utilities
+└── index.ts           # Public API
+```
+
+### Feature Structure
+
+```
+features/[feature-name]/
+├── api/               # Feature-specific API (if needed)
+├── ui/
+│   ├── FeatureForm/
+│   └── FeatureWidget/
+├── model/
+│   ├── hooks.ts       # Feature-specific hooks
+│   └── store.ts       # Feature state (if needed)
+├── lib/
+│   └── utils.ts
+└── index.ts
+```
+
+---
+
+## Code Quality Rules
+
+1. **No unused imports or variables** - Clean up before committing
+2. **No console.log in production** - Use proper logging or remove
+3. **No hardcoded strings** - Use constants for repeated values
+4. **No magic numbers** - Use named constants
+5. **Handle all error states** - Loading, error, empty states
+6. **Use semantic HTML** - Proper elements for accessibility
+7. **Add loading states** - Never leave users with blank screens
+
+---
+
+## Using FSD Skills
+
+Generate code using natural language:
+
+```
+Create a Product entity with name, price, category, and image
+Create a feature for user profile management
+Setup React Query provider
+Setup API client with axios
+```
+
+The `/fsd-frontend` skill handles all architecture decisions automatically.
+
+---
+
+## Quick Setup Checklist
+
+1. Install dependencies:
+   ```bash
+   npm install @tanstack/react-query axios react-hook-form
+   npm install -D @tanstack/react-query-devtools
+   ```
+
+2. Configure path aliases in `tsconfig.json`:
+   ```json
+   {
+     "compilerOptions": {
+       "baseUrl": ".",
+       "paths": {
+         "@/*": ["./src/*"]
+       }
+     }
+   }
+   ```
+
+3. Ask Claude to:
+   - Setup React Query provider
+   - Setup API client
+   - Create your first entity
