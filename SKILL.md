@@ -1,9 +1,24 @@
 ---
 name: fsd-frontend
-description: Scaffold Feature-Sliced Design (FSD) frontend architecture for React or Next.js 15 projects. Generates entities, features, API layers with React Query, components, and proper TypeScript types. Use when creating new entities, features, API integrations, or setting up FSD structure.
+description: Generate frontend code for React or Next.js projects. Creates API layers, components, forms, and data fetching hooks. Just describe what you need - no architecture knowledge required.
 ---
 
 # FSD Frontend Architecture Skill
+
+## Simple User Commands
+
+Users can request code generation with simple natural language:
+
+- "Create a User with name, email, and avatar"
+- "Create a Product entity with title, price, and images"
+- "Create a card component for Product"
+- "Create a form for Orders"
+- "Setup API client"
+- "Setup React Query provider"
+
+**The skill handles all architecture decisions automatically.**
+
+---
 
 ## Overview
 
@@ -546,6 +561,16 @@ Configure in `tsconfig.json`:
 | Query keys | entityKeys object | `userKeys.all`, `userKeys.detail(id)` |
 | Components | PascalCase | `UserCard`, `UserList`, `UserForm` |
 | Types | `I` prefix for interfaces | `IUser`, `ICreateUserDTO` |
+
+## Supported Technologies
+
+Works with any combination of:
+
+- **Frameworks**: React, Next.js 13/14/15 (App Router or Pages Router)
+- **Styling**: Tailwind CSS, CSS Modules, styled-components, any UI library (shadcn/ui, MUI, Ant Design, etc.)
+- **State**: React Query (TanStack Query v5)
+- **Forms**: React Hook Form (optional)
+- **HTTP**: Axios
 
 ## Quick Reference
 
